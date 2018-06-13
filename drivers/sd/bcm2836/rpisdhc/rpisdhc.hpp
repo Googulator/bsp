@@ -96,6 +96,7 @@ class SDHC {
     friend DRIVER_INITIALIZE DriverEntry;
 
 private: // non-paged
+    bool ApplyGptHack;
 
     //
     // Empirically chosen timeout numbers that seem to work with Sdport and SDHC

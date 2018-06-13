@@ -1423,6 +1423,8 @@ NTSTATUS SDHC::startTransferPio (
         requiredEventsPtr->Fields.BusyIrpt = 1;
     }
 
+    this->ApplyGptHack = (((RequestPtr->Command.Index == 17) || (RequestPtr->Command.Index == 18)) && (RequestPtr->Command.Argument == 0));
+
     //
     // In Crashdump mode, inline perform and complete transfer requests
     //
@@ -1479,6 +1481,30 @@ NTSTATUS SDHC::transferSingleBlockPio (
         status = this->readFromFifo(
             RequestPtr->Command.DataBuffer,
             RequestPtr->Command.BlockSize);
+        if (this->ApplyGptHack) {
+            this->ApplyGptHack = false;
+            if (RequestPtr->Command.BlockSize >= 512) {
+                RequestPtr->Command.DataBuffer[446] = 0x00;
+                RequestPtr->Command.DataBuffer[447] = 0x00;
+                RequestPtr->Command.DataBuffer[448] = 0x02;
+                RequestPtr->Command.DataBuffer[449] = 0x00;
+                RequestPtr->Command.DataBuffer[450] = 0xee;
+                RequestPtr->Command.DataBuffer[451] = 0xff;
+                RequestPtr->Command.DataBuffer[452] = 0xff;
+                RequestPtr->Command.DataBuffer[453] = 0xff;
+                RequestPtr->Command.DataBuffer[454] = 0x01;
+                RequestPtr->Command.DataBuffer[455] = 0x00;
+                RequestPtr->Command.DataBuffer[456] = 0x00;
+                RequestPtr->Command.DataBuffer[457] = 0x00;
+                RequestPtr->Command.DataBuffer[458] = 0xff;
+                RequestPtr->Command.DataBuffer[459] = 0xff;
+                RequestPtr->Command.DataBuffer[460] = 0xff;
+                RequestPtr->Command.DataBuffer[461] = 0xff;
+                for (int i = 462; i < 510; i++) {
+                    RequestPtr->Command.DataBuffer[i] = 0x00;
+                }
+            }
+        }
         break;
 
     case SdTransferDirectionWrite:
